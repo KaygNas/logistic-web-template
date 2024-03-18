@@ -1,0 +1,68 @@
+# 阿里云 Serverless Devs 应用配置文件，由下方链接克隆而来
+# https://github.com/devsapp/start-web-framework/tree/master/web-framework/nodejs/next
+edition: 3.0.0
+name: web-framework-app
+access: default
+vars:
+  region: cn-shenzhen
+  functionName: next-app
+  vpcId: vpc-wz******************* # 数据库实例所在的VPC ID。
+  securityGroupId: sg-wz****************** # 安全组ID。
+  vSwitchId: vsw-wz******************* # 请确保该vSwitch对应的网段已配置到数据库实例访问白名单中。
+resources:
+  framework:
+    actions:
+      # CICD 阶段执行构建
+      pre-deploy:
+        - run: bash s_build.sh
+          path: ./
+    component: fc3
+    props:
+      region: ${vars.region}
+      description: Serverless Devs Web Framework Function
+      runtime: custom.debian10
+      # 注入运行时环境:nodejs20 layer，详细可见 https://github.com/awesome-fc/awesome-layers/blob/main/docs/Nodejs18/README.md
+      layers:
+        - acs:fc:${vars.region}:official:layers/Nodejs20/versions/1
+      environmentVariables:
+        PATH: >-
+          /opt/nodejs20/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin
+        AUTH_ADMIN_PASSWORD: ${env(AUTH_ADMIN_PASSWORD)}
+        AUTH_ADMIN_USERNAME: ${env(AUTH_ADMIN_USERNAME)}
+        AUTH_SECRET: ${env(AUTH_SECRET)}
+        AUTH_URL: ${env(AUTH_URL)}
+        NEXT_PUBLIC_SHARED_LINK_ORIGIN: ${env(NEXT_PUBLIC_SHARED_LINK_ORIGIN)}
+        POSTGRES_URL: ${env(POSTGRES_URL)}
+      timeout: 60
+      customRuntimeConfig:
+        command:
+          - bash
+          - s_start.sh
+        port: 3000
+      functionName: ${vars.functionName}
+      code: ./
+      cpu: 0.5
+      memorySize: 512
+      diskSize: 512
+      # 访问RDS PostgreSQL数据库
+      # https://help.aliyun.com/zh/fc/user-guide/access-an-apsaradb-rds-for-postgresql-database
+      # https://docs.serverless-devs.com/user-guide/aliyun/fc3/spec/#vpcconfig
+      vpcConfig:
+        vpcId: ${vars.vpcId}
+        securityGroupId: ${vars.securityGroupId}
+        vSwitchIds:
+          - ${vars.vSwitchId}
+      # https://docs.serverless-devs.com/user-guide/aliyun/fc3/spec/#logconfig
+      logConfig: auto
+  # 域名配置
+  # https://docs.serverless-devs.com/user-guide/aliyun/fc3-domain/spec/
+  fc3_domain_0:
+    component: fc3-domain
+    props:
+      region: ${vars.region}
+      domainName: auto
+      protocol: HTTP
+      routeConfig:
+        routes:
+          - path: /*
+            functionName: ${vars.functionName}

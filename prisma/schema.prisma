@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model User {
+  idx                        Int                         @unique @default(autoincrement())
+  uuid                       String                      @id @default(uuid())
+  nickname                   String
+  role                       UserRole                    @default(USER)
+  profile                    WeChatProfile?
+  domesticPackages           DomesticPackage[]           @relation("user")
+  createdDomesticPackages    DomesticPackage[]           @relation("createdBy")
+  internationalPackageOrders InternationalPackageOrder[]
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @default(now()) @updatedAt
+}
+
+// 用户角色
+enum UserRole {
+  // 管理员
+  ADMIN
+  // 用户
+  USER
+}
+
+// 用户微信资料
+model WeChatProfile {
+  // TODO 补充微信资料字段
+  user     User   @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  userUuid String @unique
+}
+
+// 用户寄出的国内网购包裹
+model DomesticPackage {
+  idx                           Int                       @unique @default(autoincrement())
+  uuid                          String                    @id @default(uuid())
+  createdAt                     DateTime                  @default(now())
+  updatedAt                     DateTime                  @updatedAt
+  // 包裹单号
+  code                          String                    @unique
+  // 包裹状态
+  status                        DomesticPackageStatusEnum
+  // 包裹状态操作历史
+  statusHistory                 DomesticPackageStatus[]
+  // 包裹备注
+  note                          String?
+  // 包裹所属用户
+  user                          User                      @relation("user", fields: [userUuid], references: [uuid], onDelete: Cascade)
+  userUuid                      String
+  // 添加包裹的人
+  createdBy                     User                      @relation("createdBy", fields: [createdByUuid], references: [uuid], onDelete: Cascade)
+  createdByUuid                 String
+  // 国内包裹所属的国际包裹订单
+  internationalPackageOrder     InternationalPackageOrder @relation(fields: [internationalPackageOrderUuid], references: [uuid], onDelete: Cascade)
+  internationalPackageOrderUuid String
+}
+
+// 用户寄出的国内包裹状态
+model DomesticPackageStatus {
+  idx         Int                       @id @default(autoincrement())
+  status      DomesticPackageStatusEnum
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  package     DomesticPackage           @relation(fields: [packageUuid], references: [uuid], onDelete: Cascade)
+  packageUuid String
+}
+
+// 用户寄出的国内包裹状态枚举
+enum DomesticPackageStatusEnum {
+  // 已创建
+  CREATED
+  // 已审核
+  REVIEWED
+  // 待入库
+  TO_BE_RECEIVED
+  // 已入库
+  RECEIVED
+  // 已打包
+  PACKED
+}
+
+// 重新打包后的国内包裹
+model RepackedDomesticPackage {
+  idx                           Int                       @unique @default(autoincrement())
+  uuid                          String                    @id @default(uuid())
+  createdAt                     DateTime                  @default(now())
+  updatedAt                     DateTime                  @updatedAt
+  // 体积
+  volume                        Float?
+  // 体积单价
+  volumeUnitPrice               Float?
+  // 重量
+  weight                        Float?
+  // 重量单价
+  weightUnitPrice               Float?
+  // 总价
+  totalPrice                    Float?
+  internationalPackageOrder     InternationalPackageOrder @relation(fields: [internationalPackageOrderUuid], references: [uuid], onDelete: Cascade)
+  internationalPackageOrderUuid String
+}
+
+// 国际包裹
+model InternationalPackage {
+  idx                        Int                            @unique @default(autoincrement())
+  uuid                       String                         @id @default(uuid())
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  // 包裹名字
+  title                      String
+  // 包裹单号
+  code                       String?                        @unique
+  // 包裹地址
+  address                    String?
+  // 包裹收件人
+  recipient                  String?
+  // 包裹收件人电话
+  recipientPhone             String?
+  // 包裹状态
+  status                     InternationalPackageStatusEnum
+  // 包裹状态操作历史
+  statusHistory              InternationalPackageStatus[]
+  // 包裹备注
+  note                       String?
+  // 包裹中包含的订单
+  internationalPackageOrders InternationalPackageOrder[]
+}
+
+// 国际包裹状态
+model InternationalPackageStatus {
+  idx         Int                            @id @default(autoincrement())
+  status      InternationalPackageStatusEnum
+  createdAt   DateTime                       @default(now())
+  updatedAt   DateTime                       @updatedAt
+  package     InternationalPackage           @relation(fields: [packageUuid], references: [uuid], onDelete: Cascade)
+  packageUuid String
+}
+
+// 国际包裹状态枚举
+enum InternationalPackageStatusEnum {
+  // 待寄出
+  TO_BE_SENT
+  // 已寄出待签收
+  SENT
+  // 已签收
+  RECEIVED
+}
+
+// 国际包裹订单
+model InternationalPackageOrder {
+  idx                      Int                                 @unique @default(autoincrement())
+  uuid                     String                              @id @default(uuid())
+  createdAt                DateTime                            @default(now())
+  updatedAt                DateTime                            @updatedAt
+  // 订单总费用
+  totalFee                 Float
+  // 订单状态
+  status                   InternationalPackageOrderStatusEnum
+  // 订单状态操作历史
+  statusHistory            InternationalPackageOrderStatus[]
+  // 订单内包含的国内包裹
+  domesticPackages         DomesticPackage[]
+  // 订单内包含的重新打包后的包裹
+  repackedDomesticPackages RepackedDomesticPackage[]
+  // 订单所属的用户
+  user                     User                                @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  userUuid                 String
+  // 订单所属的国际包裹
+  internationalPackage     InternationalPackage                @relation(fields: [internationalPackageUuid], references: [uuid], onDelete: Cascade)
+  internationalPackageUuid String
+
+  // 一个用户在同一个国际包裹内只能有一个订单
+  @@unique([userUuid, internationalPackageUuid])
+}
+
+// 国际包裹订单状态
+model InternationalPackageOrderStatus {
+  idx       Int                                 @id @default(autoincrement())
+  status    InternationalPackageOrderStatusEnum
+  createdAt DateTime                            @default(now())
+  updatedAt DateTime                            @updatedAt
+  order     InternationalPackageOrder           @relation(fields: [orderUuid], references: [uuid], onDelete: Cascade)
+  orderUuid String
+}
+
+// 国际包裹订单枚举
+enum InternationalPackageOrderStatusEnum {
+  // 待打包
+  TO_BE_PACKED
+  // 已打包
+  PACKED
+  // 已核对
+  CHECKED
+  // 已支付
+  PAID
+  // 已完成
+  COMPLETED
+}
+
+// 网站设置
+model Setting {
+  key   SettingKey @unique
+  value String
+}
+
+// 网站设置键
+enum SettingKey {
+  // 网站名称
+  SITE_NAME
+  // 转运须知指南链接
+  TRANSFER_USER_GUIDE_LINK
+  // 转运仓地址
+  TRANSFER_WAREHOUSE_ADDRESS
+  // 转运仓电话
+  TRANSFER_WAREHOUSE_PHONE
+}
