@@ -1,10 +1,12 @@
 # Logistic Web Template
 
-本项目使用 React + ShadcnUI + Next.js + Prisma + PostgreSQL，是基于真实业务需求而开发的个人项目，主要功能包含：
+本项目使用 React + ShadcnUI + Next.js + Prisma + PostgreSQL，是基于真实业务需求而开发的练习项目，主要功能包含：
 
 - 国内包裹扫码入库
 - 国际包裹管理
 - 用户管理
+
+可以通过 [logistic-web-template.vercel.app](https://logistic-web-template.vercel.app) 在线预览，进入管理后台所需的帐号和密码均为 `admin`。
 
 这个项目的初始化使用 [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) 的引导创建，在此之上额外调整了 `eslint.config.js` 的配置，另外本地开发所需的 PostgresSQL 数据库是由 Docker 容器运行。
 
@@ -67,6 +69,14 @@ pnpm dev
 - 在[专有网络 VPC](https://vpc.console.aliyun.com/overview)创建一个实例并将数据库加入其中
 
 部署函数计算应用所需的 `s.yaml` 在根目录，你需要修改 VPC 的配置变量 `vpcId` `securityGroupId` `vSwitchIds`。另外，别务必记得在函数计算的流水线中配置还 `.env.template` 中的所有环境变量。
+
+## 证书
+
+本项目使用 MIT 证书，你可以克隆本仓库并随意使用。
+
+## 帮助
+
+如果你遇到任何困难或者需要帮助，欢迎提出 Issue。
 
 ## 了解更多
 
